@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="frontend/public/mascot.png" width="120" alt="MONAGENT mascot" />
+  <img src="cover.png" alt="MONAGENT" />
 </p>
 
 <h1 align="center">MONAGENT</h1>
