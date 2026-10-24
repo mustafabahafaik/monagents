@@ -1,0 +1,12 @@
+{
+  "network": "monadTestnet",
+  "chainId": 10143,
+  "rpcUrl": "https://testnet-rpc.monad.xyz",
+  "explorer": "https://testnet.monadexplorer.com",
+  "address": null,
+  "deployBlock": 0,
+  "owner": null,
+  "agent": null,
+  "vendors": {},
+  "abi": []
+}
