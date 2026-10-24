@@ -23,6 +23,23 @@ const REASONS = {
 };
 const SAMPLES = ["mustafabahafaik/monagents", "vitejs/vite", "OpenZeppelin/openzeppelin-contracts"];
 
+function camera(key) {
+  if (!key || !STATIONS[key]) return { transform: "rotateX(10deg) scale(1)" };
+  const st = STATIONS[key];
+  const f = { x: HOME.x + (st.x - HOME.x) * 0.72, y: HOME.y + (st.y - HOME.y) * 0.72 };
+  const z = 1.1;
+  const tx = (50 - f.x) * 0.4;
+  const ty = (50 - f.y) * 0.35;
+  const ry = (f.x - 50) * -0.16;
+  return { transform: `rotateX(${10 + (f.y - 50) * 0.1}deg) rotateY(${ry}deg) scale(${z}) translate(${tx}%, ${ty}%)` };
+}
+
+const WORKER = {
+  scout: { hue: 180, fx: "scan" }, frontend: { hue: 290, fx: "paint" }, backend: { hue: 30, fx: "gears" },
+  security: { hue: 110, fx: "scan" }, premium: { hue: 200, fx: "gem" }, improver: { hue: 60, fx: "spark" },
+  shady: { hue: 0, fx: "shady" },
+};
+
 const towards = (st, k = 0.7) => ({ x: HOME.x + (st.x - HOME.x) * k, y: HOME.y + (st.y - HOME.y) * k });
 const fmt = (v, d = 2) => Number(formatEther(v ?? 0n)).toFixed(d);
 const read = (functionName, args) => publicClient.readContract({ address: dep.address, abi: dep.abi, functionName, args });
@@ -42,6 +59,7 @@ export default function Landing() {
   const [coins, setCoins] = useState([]);
   const [chain, setChain] = useState(null);
   const [online, setOnline] = useState(null);
+  const [focus, setFocus] = useState(null); // station key the camera looks at
   const posRef = useRef(HOME);
   const esRef = useRef(null);
 
@@ -82,6 +100,7 @@ export default function Landing() {
   // ------------------------------------------------------------- movement
   const moveTo = (key) => {
     const target = key === "home" ? HOME : towards(STATIONS[key], key === "scout" ? 0.5 : 0.52);
+    setFocus(key === "home" ? null : key);
     setFacing(target.x < posRef.current.x ? -1 : 1);
     posRef.current = target;
     setPos(target);
@@ -143,7 +162,7 @@ export default function Landing() {
           addLog({ kind: "bad", text: `ENGELLENDİ · ${REASONS[ev.reason] || ev.reason}`, tx: ev.tx });
           break;
         case "result":
-          setSt(ev.station, { state: "done" });
+          setSt(ev.station, { state: "done", findings: ev.findings });
           setFindings((f) => [...f, { station: ev.station, items: ev.findings }]);
           break;
         case "error":
@@ -219,7 +238,8 @@ export default function Landing() {
       </section>
 
       <section className="lp-stage">
-        <Skyline />
+        <div className="lp-world" style={camera(focus)}>
+        <div className="lp-floor" />
         <svg className="lp-links" viewBox="0 0 100 100" preserveAspectRatio="none">
           {Object.entries(STATIONS).map(([k, s]) => (
             <line key={k} x1={HOME.x} y1={HOME.y} x2={s.x} y2={s.y} className={`l-${stations[k]?.state || "idle"}`} />
@@ -245,7 +265,10 @@ export default function Landing() {
           <img src="/mascot.png" alt="MONAGENT maskotu" style={{ transform: `scaleX(${facing})` }} />
           <div className="shadow" />
         </div>
+        </div>
       </section>
+
+      <div className="lp-city"><Skyline /></div>
 
       <section className="lp-hero">
         <h1>MONAGENT</h1>
@@ -321,17 +344,37 @@ function Stat({ label, value, children }) {
 
 function Station({ k, s, st }) {
   const state = st?.state || "idle";
+  const w = WORKER[k] || {};
+  const working = state === "paying" || state === "active";
   return (
     <div className={`lp-station s-${state} k-${k}`} style={{ left: `${s.x}%`, top: `${s.y}%` }}>
+      <div className={`worker w-${state} ${k === "shady" ? "shady" : ""}`}>
+        <img src="/mascot.png" alt="" style={{ filter: k === "shady" ? "grayscale(1) brightness(.7)" : `hue-rotate(${w.hue}deg) saturate(1.3)` }} />
+        {k === "shady" && <span className="glasses">🕶️</span>}
+        {state === "blocked" && <span className="no">✋</span>}
+        {(state === "paid" || state === "done") && <span className="tool">{s.icon}</span>}
+      </div>
+      {(working || state === "paid") && <div className={`fx fx-${w.fx}`}><i /><i /><i /></div>}
       <div className="ico">{s.icon}</div>
       <div className="txt">
         <div className="lb">{s.label}</div>
         <div className="sb">{s.sub}</div>
       </div>
       <div className="price">{s.price === "ücretsiz" ? s.price : `${s.price} MON`}</div>
-      {(state === "paid" || state === "done") && <div className="badge ok">{st.ms ? `✓ ${st.ms} ms` : "✓ tarandı"}</div>}
+      {(state === "paid" || state === "done") && (
+        <div className="badge ok">{st.ms ? `✓ ${st.ms} ms` : "✓ tarandı"}{st.findings ? ` · ${st.findings.length} bulgu` : ""}</div>
+      )}
       {state === "blocked" && <div className="badge bad">⛔ {REASONS[st.reason]?.split(" ").slice(0, 3).join(" ") || "engellendi"}</div>}
       {state === "paying" && <div className="badge pay">zincire yazılıyor…</div>}
+      {st?.findings && (
+        <div className={`pops ${s.y > 60 ? "up" : s.y < 20 ? "down" : "up"}`}>
+          {st.findings.slice(0, 3).map((f, i) => (
+            <div key={i} className={`pop ${f.level}`} style={{ animationDelay: `${i * 0.18}s` }}>
+              <b>{{ ok: "✓", warn: "!", bad: "✕", tip: "→" }[f.level]}</b> {f.text}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -378,28 +421,67 @@ function Skyline() {
     let x = 0;
     let seed = 7;
     const rnd = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
+    const gaps = [[130, 345], [455, 690], [930, 1035]]; // reserved for landmarks
     while (x < 1200) {
-      const w = 26 + rnd() * 50;
-      const h = 40 + rnd() * 130;
+      const gap = gaps.find(([a, z]) => x + 60 > a && x < z);
+      if (gap) { x = gap[1] + 6; continue; }
+      const w = 24 + rnd() * 44;
+      const h = 30 + rnd() * 95;
       const wins = [];
       for (let wy = 10; wy < h - 8; wy += 14)
-        for (let wx = 6; wx < w - 8; wx += 11) if (rnd() > 0.62) wins.push([wx, wy]);
-      out.push({ x, w, h, wins, tower: rnd() > 0.9 });
+        for (let wx = 6; wx < w - 8; wx += 11) if (rnd() > 0.65) wins.push([wx, wy]);
+      out.push({ x, w, h, wins });
       x += w + 4 + rnd() * 10;
     }
     return out;
   }, []);
+  const cols = Array.from({ length: 10 }, (_, i) => i);
   return (
-    <svg className="lp-skyline" viewBox="0 0 1200 200" preserveAspectRatio="xMidYMax slice">
+    <svg className="lp-skyline" viewBox="0 0 1200 220" preserveAspectRatio="xMidYMax meet">
       {b.map((r, i) => (
-        <g key={i} transform={`translate(${r.x},${200 - r.h})`}>
+        <g key={i} transform={`translate(${r.x},${220 - r.h})`}>
           <rect width={r.w} height={r.h} rx="2" />
-          {r.tower && <rect x={r.w / 2 - 1.5} y={-24} width="3" height="24" />}
           {r.wins.map(([wx, wy], j) => (
             <rect key={j} className="w" x={wx} y={wy} width="5" height="6" style={{ animationDelay: `${(i * 7 + j) % 11}s` }} />
           ))}
         </g>
       ))}
+
+      {/* sloped glass tower with green roof */}
+      <g className="lm">
+        <path d="M150 220 V34 L162 26 C 205 95, 255 140, 318 150 L 338 138 V220 Z" />
+        <path className="roof" d="M162 26 C 205 95, 255 140, 318 150 L 338 138" />
+        {Array.from({ length: 12 }, (_, r) =>
+          Array.from({ length: 11 }, (_, c) => {
+            const x = 158 + c * 16, y = 46 + r * 14;
+            const roofY = x < 318 ? 26 + Math.pow((x - 162) / 156, 0.75) * 124 : 140;
+            return y > roofY + 6 && y < 214 ? <rect key={`${r}-${c}`} className="w g" x={x} y={y} width="10" height="7" style={{ animationDelay: `${(r + c) % 9}s` }} /> : null;
+          })
+        )}
+      </g>
+
+      {/* Anitkabir */}
+      <g className="lm warm">
+        <rect x="455" y="196" width="235" height="24" />
+        <path d="M470 196 L500 182 H640 L670 196 Z" />
+        <rect x="500" y="128" width="150" height="54" />
+        <rect x="494" y="118" width="162" height="11" />
+        <rect x="498" y="112" width="154" height="7" />
+        {cols.map((i) => (
+          <rect key={i} className="glow" x={507 + i * 14.4} y="133" width="7.5" height="47" />
+        ))}
+      </g>
+
+      {/* Atakule */}
+      <g className="lm">
+        <rect x="975" y="74" width="20" height="146" />
+        <path d="M955 74 Q985 96 1015 74 L1010 66 H960 Z" />
+        <ellipse cx="985" cy="62" rx="27" ry="7" className="glow" />
+        <path d="M962 60 A23 25 0 0 1 1008 60 Z" />
+        <path className="dome" d="M962 60 A23 25 0 0 1 1008 60" />
+        <line x1="985" y1="35" x2="985" y2="18" className="ant" />
+        <circle cx="985" cy="17" r="2.2" className="beacon" />
+      </g>
     </svg>
   );
 }
