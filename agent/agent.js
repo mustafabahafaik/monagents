@@ -12,7 +12,8 @@ if (!process.env.AGENT_PRIVATE_KEY) {
 }
 
 const FAST = process.argv.includes("--fast");
-const provider = new ethers.JsonRpcProvider(dep.rpcUrl, dep.chainId);
+const provider = new ethers.JsonRpcProvider(dep.rpcUrl, dep.chainId, { staticNetwork: true });
+provider.pollingInterval = 250; // Monad is fast, poll receipts quickly
 const wallet = new ethers.Wallet(process.env.AGENT_PRIVATE_KEY, provider);
 const vault = new ethers.Contract(dep.address, dep.abi, wallet);
 const V = dep.vendors;
@@ -36,13 +37,21 @@ async function think(text) {
   await sleep(500);
 }
 
+async function waitReceipt(hash) {
+  for (;;) {
+    const rc = await provider.getTransactionReceipt(hash);
+    if (rc) return rc;
+    await new Promise((r) => setTimeout(r, 200));
+  }
+}
+
 async function buy(vendorName, amountMon, memo) {
   const vendor = V[vendorName];
   const amount = ethers.parseEther(amountMon);
   console.log(`  💸 pay ${c.bold(amountMon + " MON")} → ${c.bold(vendorName)}  ${c.dim('"' + memo + '"')}`);
   const t0 = Date.now();
-  const tx = await vault.pay(vendor, amount, memo);
-  const rc = await tx.wait();
+  const tx = await vault.pay(vendor, amount, memo, { gasLimit: 250000n });
+  const rc = await waitReceipt(tx.hash);
   const ms = Date.now() - t0;
 
   for (const log of rc.logs) {
@@ -112,7 +121,7 @@ const steps = [
 ];
 
 async function main() {
-  console.log(c.purple(c.bold("\n  ◆ MONAGENT demo agent · ResearchBot-01")));
+  console.log(c.purple(c.bold("\n  ◆ MONAGENT demo agent · " + (process.env.AGENT_NAME || "ResearchBot-01"))));
   console.log(c.dim(`  agent ${wallet.address}`));
   console.log(c.dim(`  vault ${dep.address} · Monad testnet\n`));
   const gas = await provider.getBalance(wallet.address);

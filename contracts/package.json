@@ -6,7 +6,7 @@
     "compile": "hardhat compile",
     "test": "hardhat test",
     "deploy": "hardhat run scripts/deploy.js --network monadTestnet",
-    "setup-demo": "hardhat run scripts/setup-demo.js --network monadTestnet"
+    "new-agent": "hardhat run scripts/new-agent.js --network monadTestnet"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
