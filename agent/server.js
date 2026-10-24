@@ -5,6 +5,8 @@
 import "dotenv/config";
 import http from "http";
 import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 import { ethers } from "ethers";
 
 const PORT = Number(process.env.PORT || 8787);
@@ -265,10 +267,19 @@ http
       return;
     }
 
+    // serve the built dashboard (frontend/dist) so one service hosts everything
+    const dist = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "frontend", "dist");
+    if (fs.existsSync(dist)) {
+      let file = path.join(dist, decodeURIComponent(url.pathname));
+      if (!file.startsWith(dist) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) file = path.join(dist, "index.html");
+      const types = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".png": "image/png", ".svg": "image/svg+xml", ".json": "application/json" };
+      res.writeHead(200, { "Content-Type": types[path.extname(file)] || "application/octet-stream" });
+      return fs.createReadStream(file).pipe(res);
+    }
     res.writeHead(404);
     res.end("not found");
   })
-  .listen(PORT, () => {
+  .listen(PORT, "0.0.0.0", () => {
     console.log(`\n  ◆ MONAGENT agent server on http://localhost:${PORT}`);
     console.log(`  agent ${AGENT_NAME} ${wallet.address}`);
     console.log(`  vault ${dep.address}\n`);

@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: monagent
+    runtime: node
+    plan: free
+    buildCommand: cd frontend && npm install && npm run build && cd ../agent && npm install
+    startCommand: cd agent && node server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: AGENT_PRIVATE_KEY
+        sync: false
+      - key: AGENT_NAME
+        value: ResearchBot-03
