@@ -19,6 +19,7 @@ const REASONS = {
   EXCEEDS_PER_TX_LIMIT: "İşlem başı limit aşıldı",
   EXCEEDS_DAILY_LIMIT: "Günlük limit aşıldı",
   VAULT_INSUFFICIENT: "Kasa bakiyesi yetersiz",
+  TX_ERROR: "İşlem hatası (gas?)",
 };
 const SAMPLES = ["mustafabahafaik/monagents", "vitejs/vite", "OpenZeppelin/openzeppelin-contracts"];
 

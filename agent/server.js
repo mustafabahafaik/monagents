@@ -175,6 +175,14 @@ function improverFindings(a, all) {
 // ----------------------------------------------------------------- review
 async function review(repoInput, send) {
   const { owner, repo } = parseRepo(repoInput);
+  const gas = await provider.getBalance(wallet.address);
+  if (gas < ethers.parseEther("0.06")) {
+    throw new Error(`${AGENT_NAME} ajanının gas'ı bitmiş (${Number(ethers.formatEther(gas)).toFixed(3)} MON). contracts klasöründe new-agent.js çalıştır.`);
+  }
+  const left = await vault.remainingToday(wallet.address);
+  if (left < ethers.parseEther("0.02")) {
+    send({ t: "thought", text: "Günlük bütçem neredeyse bitmiş, ödemeler engellenebilir…" });
+  }
   send({ t: "thought", text: `${owner}/${repo} reposunu inceliyorum…` });
   send({ t: "move", station: "scout" });
   const a = await analyse(owner, repo);
