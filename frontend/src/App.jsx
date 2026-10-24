@@ -41,8 +41,9 @@ export default function App() {
     if (!dep.address || !viewOwner) return;
     const [bal, list] = await Promise.all([read("balanceOf", [viewOwner]), read("getOwnerAgents", [viewOwner])]);
     setVaultBal(bal);
-    const rows = await Promise.all(
-      list.map(async (addr) => {
+    const rows = [];
+    for (const addr of list) {
+      try {
         const [a, left, vendors] = await Promise.all([
           read("agents", [addr]),
           read("remainingToday", [addr]),
@@ -50,14 +51,17 @@ export default function App() {
         ]);
         const allowed = await Promise.all(vendors.map((v) => read("isVendorAllowed", [addr, v])));
         const [owner, name, maxPerTx, dailyLimit, spentToday, , totalSpent, paymentCount, blockedCount, active] = a;
-        return {
+        rows.push({
           addr, owner, name, maxPerTx, dailyLimit, totalSpent, paymentCount, blockedCount, active,
           spentToday: dailyLimit - left > 0n ? dailyLimit - left : 0n,
           rawSpent: spentToday,
           vendors: vendors.map((v, i) => ({ addr: v, allowed: allowed[i] })),
-        };
-      })
-    );
+        });
+      } catch (e) {
+        console.warn("agent read failed", addr, e);
+      }
+    }
+    rows.reverse(); // newest agent first
     setAgents(rows);
   }, [viewOwner]);
 
@@ -70,7 +74,7 @@ export default function App() {
     const initial = lastBlock.current === null;
     if (initial) {
       const start = BigInt(dep.deployBlock || 0);
-      from = latest - 3000n > start ? latest - 3000n : start;
+      from = latest - 1500n > start ? latest - 1500n : start;
     } else {
       from = lastBlock.current + 1n;
     }
@@ -101,7 +105,7 @@ export default function App() {
     refresh().catch(console.error);
     pollEvents().catch(console.error);
     const t1 = setInterval(() => pollEvents().catch(console.error), 1500);
-    const t2 = setInterval(() => refresh().catch(console.error), 4000);
+    const t2 = setInterval(() => refresh().catch(console.error), 6000);
     return () => {
       clearInterval(t1);
       clearInterval(t2);

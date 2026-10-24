@@ -12,7 +12,10 @@ export const monad = defineChain({
   testnet: true,
 });
 
-export const publicClient = createPublicClient({ chain: monad, transport: http(dep.rpcUrl) });
+export const publicClient = createPublicClient({
+  chain: monad,
+  transport: http(dep.rpcUrl, { batch: { batchSize: 25, wait: 30 }, retryCount: 4, retryDelay: 400 }),
+});
 
 export async function connectWallet() {
   if (!window.ethereum) throw new Error("MetaMask not found");
@@ -42,8 +45,8 @@ export async function fetchEvents(fromBlock, toBlock) {
     const e = s + STEP - 1n > toBlock ? toBlock : s + STEP - 1n;
     ranges.push([s, e]);
   }
-  for (let i = 0; i < ranges.length; i += 4) {
-    const batch = ranges.slice(i, i + 4).map(([s, e]) =>
+  for (let i = 0; i < ranges.length; i += 2) {
+    const batch = ranges.slice(i, i + 2).map(([s, e]) =>
       publicClient.getContractEvents({ address: dep.address, abi: dep.abi, fromBlock: s, toBlock: e })
     );
     const results = await Promise.all(batch);
