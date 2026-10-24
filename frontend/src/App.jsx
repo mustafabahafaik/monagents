@@ -157,9 +157,9 @@ export default function App() {
   return (
     <div className="app">
       <header>
-        <div className="logo">
+        <a className="logo" href="#/" style={{ textDecoration: "none" }}>
           <span className="diamond">◆</span> MONAGENT
-        </div>
+        </a>
         <div className="net">
           <span className="dot" /> Monad Testnet {block !== null && <span className="mono">#{block.toString()}</span>}
         </div>

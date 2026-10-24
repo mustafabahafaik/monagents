@@ -18,7 +18,14 @@ async function main() {
   const n = (await vault.getOwnerAgents(owner.address)).length + 1;
   const name = `ResearchBot-${String(n).padStart(2, "0")}`;
   const agentWallet = ethers.Wallet.createRandom();
-  const allowed = [dep.vendors.WeatherAPI, dep.vendors.GPUCompute, dep.vendors.TranslateAI];
+  // Code-review service vendors used by the landing-page "send your project" flow
+  for (const svc of ["FrontendReviewer", "BackendAuditor", "SecurityScanner", "CodeImprover"]) {
+    if (!dep.vendors[svc]) dep.vendors[svc] = ethers.Wallet.createRandom().address;
+  }
+  const allowed = [
+    dep.vendors.WeatherAPI, dep.vendors.GPUCompute, dep.vendors.TranslateAI,
+    dep.vendors.FrontendReviewer, dep.vendors.BackendAuditor, dep.vendors.SecurityScanner, dep.vendors.CodeImprover,
+  ];
 
   const bal = await vault.balanceOf(owner.address);
   const min = ethers.parseEther("0.2");

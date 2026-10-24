@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "demo": "node agent.js",
-    "demo:fast": "node agent.js --fast"
+    "demo:fast": "node agent.js --fast",
+    "server": "node server.js"
   },
   "dependencies": {
     "dotenv": "^16.4.5",

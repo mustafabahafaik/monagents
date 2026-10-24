@@ -49,8 +49,18 @@ npm run dev                 # http://localhost:5173
 # 3. Agent (in a second terminal)
 cd ../agent
 npm install
-npm run demo
+npm run demo        # scripted CLI demo
+npm run server      # agent server for the landing page (http://localhost:8787)
 ```
+
+### Landing page: "send your project to the agent"
+
+Open the dashboard root (`/`), enter a GitHub repo and press **Projeyi ajana gönder**.
+The agent server reads the repo via the GitHub API, then **buys review services on-chain** through the vault:
+Frontend Reviewer, Backend Auditor, Security Scanner, Code Improver. It also tries a 0.08 MON "Full AI Rewrite"
+(blocked: per-tx limit) and a ShadyDataBroker (blocked: not allowlisted). The mascot walks to each service,
+coins fly, and a health-score report is built from the real repo structure. Before the first run, register a fresh agent so the
+review vendors are allowlisted: `cd contracts && npx hardhat run scripts/new-agent.js --network monadTestnet`.
 
 The deploy script deploys the vault, creates a demo agent wallet and vendor addresses, deposits MON, registers the agent and writes `deployment.json` for the dashboard and the agent.
 
