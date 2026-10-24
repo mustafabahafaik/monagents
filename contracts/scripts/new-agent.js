@@ -38,8 +38,8 @@ async function main() {
   ).wait();
   console.log(`✅ Registered ${name}: ${agentWallet.address}`);
 
-  await (await owner.sendTransaction({ to: agentWallet.address, value: ethers.parseEther("0.05") })).wait();
-  console.log(`✅ Sent 0.05 MON gas to agent`);
+  await (await owner.sendTransaction({ to: agentWallet.address, value: ethers.parseEther("0.1") })).wait();
+  console.log(`✅ Sent 0.1 MON gas to agent`);
 
   dep.agent = agentWallet.address;
   for (const f of files) fs.writeFileSync(f, JSON.stringify(dep, null, 2));

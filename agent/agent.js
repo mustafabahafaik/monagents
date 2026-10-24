@@ -37,6 +37,8 @@ async function think(text) {
   await sleep(500);
 }
 
+let nonce;
+
 async function waitReceipt(hash) {
   for (;;) {
     const rc = await provider.getTransactionReceipt(hash);
@@ -50,7 +52,9 @@ async function buy(vendorName, amountMon, memo) {
   const amount = ethers.parseEther(amountMon);
   console.log(`  💸 pay ${c.bold(amountMon + " MON")} → ${c.bold(vendorName)}  ${c.dim('"' + memo + '"')}`);
   const t0 = Date.now();
-  const tx = await vault.pay(vendor, amount, memo, { gasLimit: 250000n });
+  // Monad charges the full gas LIMIT, so estimate tightly (+20%) and manage the nonce ourselves
+  const est = await vault.pay.estimateGas(vendor, amount, memo);
+  const tx = await vault.pay(vendor, amount, memo, { gasLimit: (est * 12n) / 10n, nonce: nonce++ });
   const rc = await waitReceipt(tx.hash);
   const ms = Date.now() - t0;
 
@@ -127,6 +131,7 @@ async function main() {
   const gas = await provider.getBalance(wallet.address);
   console.log(c.dim(`  agent gas balance: ${ethers.formatEther(gas)} MON (the agent holds NO spending money)\n`));
   await status();
+  nonce = await provider.getTransactionCount(wallet.address, "pending");
 
   let paid = 0, blocked = 0;
   for (const [i, s] of steps.entries()) {
@@ -135,7 +140,8 @@ async function main() {
     try {
       (await buy(s.vendor, s.amount, s.memo)) ? paid++ : blocked++;
     } catch (e) {
-      console.log(c.red(`  ❌ tx error: ${e.shortMessage || e.message}`));
+      console.log(c.red(`  ❌ tx error: ${e.error?.message || e.info?.error?.message || e.shortMessage || e.message}`));
+      nonce = await provider.getTransactionCount(wallet.address, "pending");
       blocked++;
     }
     await status();
